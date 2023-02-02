@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Template</title>
+    <style>
+        @import url("https://fonts.googleapis.com/css2?family=Raleway:wght@500&display=swap");
+        
+        @keyframes blink{
+            0%{
+                color: yellow;
+            }
+            50%{
+                color: lime;
+            }
+            100%{
+                color: red;
+            }
+        }
+
+
+        h1{
+            font-family: Raleway;
+        }
+        
+        canvas {
+            border: 2px solid black;
+            width: 60%;
+            
+        }
+        h2{
+            animation-name: blink;
+            animation-duration: 3s;
+            animation-iteration-count: infinite;
+            animation-direction: alternate;
+            font-family: Raleway;
+            position: fixed;
+            top: 40%;
+            left: 20%;
+        }
+        .wrapper{
+            font-family: Raleway;
+            font-size: 5;
+            position:absolute;
+            right: 10%;
+            top: 20%;
+        }
+
+        canvas{
+            background-color: midnightblue;
+        }
+    </style>
+</head>
+<h1>COLLISION IMMINENT!</h1>
+<body>
+    <canvas id="demoCanvas" width="1024" height="768"></canvas>
+
+    <h2 id="gameOver">GAME OVER</h2>
+
+    <div class = "wrapper">
+        <p>How to play:</p>
+        <p>Use up and down keys to avoid projectiles!</p>
+    </div>
+
+
+    <script type="text/javascript">
+        var canvas = document.getElementById("demoCanvas");
+        var context = canvas.getContext("2d");
+        var gameOver = document.getElementById("gameOver");
+        gameOver.style.opacity = 0;
+
+        // SETUP AND INITIALIZATION OF ANIMATION AND GAME LOGIC GOES HERE
+
+        class Player {
+            constructor(canvas, context, x, y, width, height, color){
+                this.canvas = canvas;
+                this.context = context;
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.width = width;
+                this.height = height;
+            }
+
+            render(){
+                this.context.fillStyle = this.color;
+                this.context.strokeStyle = "white";
+                this.context.beginPath();
+                this.context.fillRect(this.x, this.y, this.width, this.height);
+                this.context.strokeRect(this.x, this.y, this.width, this.height);
+                this.context.fill();
+            }
+        
+        }
+
+        class Projectile {
+            constructor(canvas, context, x, y, color, speed){
+                this.canvas = canvas;
+                this.context = context;
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.vx = (Math.random()*-1*speed) - 10;
+            }
+
+            render(){
+                this.context.fillStyle = this.color;
+                this.context.beginPath();
+                this.context.moveTo(this.x, this.y);
+                this.context.lineTo(this.x + 20, this.y);
+                this.context.lineTo(this.x + 25, this.y - 5);
+                this.context.lineTo(this.x + 20, this.y - 10);
+                this.context.lineTo(this.x, this.y - 10);
+                this.context.lineTo(this.x - 5, this.y - 5);
+                this.context.lineTo(this.x, this.y);
+                this.context.stroke();
+                this.context.fill();    
+            }
+            
+            move(){
+                this.x = this.x + this.vx;
+            }
+
+            reset(){
+                if(this.x <= -25){
+                    this.x = Math.random()*(canvas.width - canvas.width - 40)+ (canvas.width - 40);
+                    this.y = Math.random()*(canvas.height);
+                }
+            }
+        }
+
+        class Txt{
+            constructor(canvas, context, score){
+                this.score = score;
+                this.canvas = canvas;
+                this.context = context;
+            }
+
+            render(){
+                this.context.fillStyle = "white";
+                this.context.font = "25px 'Raleway'";
+                this.context.fillText("HEALTH: ", 20, 40)
+                this.context.fillText(this.score.toString(), 150, 40);
+            }
+
+            update(px, py, projX, projY){   
+                if(!(px + 10 < projX - 5 || px > projX + 25 || py > projY || py + 10 < projY - 10)){
+                    console.log("hit");
+                    this.score -= Math.floor(Math.random()*10 + 4);
+                    this.context.fillStyle = "white";
+                    this.context.font = "25px 'Raleway'";
+                    this.context.fillText(this.score.toString(), 150, 40);
+                }
+            }
+        }
+
+
+        let projectiles = [];
+        let numProj = 30;
+        for(let i = 0; i < numProj; i++){
+            projectiles.push(new Projectile(canvas, context, Math.random()*(canvas.width - canvas.width - 40) + (canvas.width - 40),
+                Math.random()*(canvas.height), "fuchsia", 10, 0));
+        }
+
+        let player = new Player(canvas, context, canvas.width/8, canvas.height/2, 10, 10, "springgreen");
+        let txt = new Txt(canvas, context, 100);
+
+        window.addEventListener("keydown", handleKeyDown);
+        function handleKeyDown(event){
+            if(event.key == "ArrowUp"){
+                event.preventDefault();
+                player.y -= 10;
+            }
+            else if(event.key == "ArrowDown"){
+                event.preventDefault();
+                player.y += 10;
+            }
+        }
+        
+        
+        startGame();
+        
+        function startGame()
+        {
+            updateGame();
+            window.requestAnimationFrame(drawGame);
+        }
+
+        function updateGame()
+        {
+            // GAME AND ANIMATION LOGIC GOES HERE
+            projectiles.forEach(function(projectile){
+                txt.update(player.x, player.y, projectile.x, projectile.y);
+                projectile.move();
+                projectile.reset();
+            });
+
+            if(txt.score <= 0){
+                gameOver.style.opacity = 1;
+                return;
+            }
+            
+            
+            // CHANGE THE NUMBER OF MILLISECONDS TO ADJUST FRAME RATE
+            window.setTimeout(updateGame, 16.5);
+        }
+
+        function drawGame()
+        {
+            context.clearRect(0,0,canvas.width,canvas.height);
+
+            // RENDERING HAPPENS HERE
+            player.render();
+            txt.render();
+            projectiles.forEach(function(projectile){
+                projectile.render();
+            });
+
+            window.requestAnimationFrame(drawGame);
+        }
+
+    </script>
+</body>
+</html>
